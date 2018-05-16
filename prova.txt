@@ -1,1 +1,0 @@
-Prova git da VM vagrant

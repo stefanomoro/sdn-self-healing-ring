@@ -19,10 +19,13 @@ class switch(app_manager.RyuApp):
     #NB: bisogna probabilmente aggiungere delle funzioni che si accorgano di eventuali cambiamenti della topologia
     @set_ev_cls(event.EventSwitchEnter)
     def get_topology_data(self, ev):
-        switch_list = get_switch(self.topology_api_app, None)
+        switch_list = get_switch(self, None)
         switches = [switch.dp.id for switch in switch_list]
-        links_list = get_link(self.topology_api_app, None)
+        links_list = get_link(self, None)
         links = [(link.src.dpid, link.dst.dpid, {'port': link.src.port_no}) for link in links_list]
+	print(switches)
+	print(links)
+
 
     #utilizzando un approccio proattivo non ce ne frega di mandare i pacchetti al controller
     #dunque dobbiamo definire delle regole di default ---> group table (group type FAST FAILOVER)
