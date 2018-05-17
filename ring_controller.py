@@ -42,10 +42,10 @@ class switch(app_manager.RyuApp):
 				print(link)
 				print(links[link[0]][0])
 				print(sw_id)
-				if (links[link[0]][0] == sw_id and (links[link[0]][1] != routing_matrix[i-1][0] or i == 0)):
+				if (link[0]] == sw_id and (link[1] != routing_matrix[i-1][0] or i == 0)):
 					routing_matrix[i][0] = sw_id
-					routing_matrix[i][1] = links[link[0]][2]
-					sw_id = links[link][1]
+					routing_matrix[i][1] = link[2]
+					sw_id = link[1]
 					break
 		print(routing_matrix)
 					
