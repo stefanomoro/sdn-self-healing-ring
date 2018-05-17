@@ -31,6 +31,26 @@ class switch(app_manager.RyuApp):
 	contatore_TD = ( contatore_TD + 1 )
 	print("TD :")
 	print(contatore_TD)
+	if contatore_TD == contatore_SD #quando ha finito il topology discovery
+		sw_id = 1
+		routing_matrix = [[0 for col_links_matrix in range(5)] for row_links_matrix in range(len(switches))] #inizializzo matrice per instradamento [colonne: sw_id, cw_dest ccw_dest, host, host_ip]
+		for i in switches: #for da i cicli per i switch
+			for link in links: #for per scorrere tutti i link trovati dal TD
+				if (links[link][0] == sw_id and (links[link][1] != routing_matrix[i-1][0] or i == 0)):
+					routing_matrix[i][0] = sw_id
+					routing_matrix[i][1] = links[link][2]
+					sw_id = links[link][1]
+					break
+		print(routing_matrix)
+					
+				
+				
+			
+			
+	
+	
+	
+	
 
     #utilizzando un approccio proattivo non ce ne frega di mandare i pacchetti al controller
     #dunque dobbiamo definire delle regole di default ---> group table (group type FAST FAILOVER)
