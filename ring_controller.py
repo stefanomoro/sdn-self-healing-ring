@@ -37,12 +37,12 @@ class switch(app_manager.RyuApp):
 		sw_id = 1
 		routing_matrix = [[0 for col_links_matrix in range(5)] for row_links_matrix in range(len(switches))] #inizializzo matrice per instradamento [colonne: sw_id, cw_dest ccw_dest, host, host_ip]
 		print(routing_matrix)
-		for i in switches: #for da i cicli per i switch
+		for i in switches: #for da i cicli per i switch [i=1->6]
 			for link in links: #for per scorrere tutti i link trovati dal TD
 				print(i)
-				if (link[0] == sw_id and (link[1] != routing_matrix[i-1][0] or i == 0)):
-					routing_matrix[i][0] = sw_id
-					routing_matrix[i][1] = link[2]
+				if (link[0] == sw_id and (link[1] != routing_matrix[i-2][0] or i == 1)):
+					routing_matrix[i-1][0] = sw_id
+					routing_matrix[i-1][1] = link[2]
 					sw_id = link[1]
 					break
 		print(routing_matrix)
