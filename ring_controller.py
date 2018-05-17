@@ -7,6 +7,8 @@ from ryu.lib.packet import packet
 from ryu.lib.packet import ethernet
 from ryu.topology import event, switches
 from ryu.topology.api import get_switch, get_link
+contatore_SF = 0
+contatore_TD = 0
 
 class switch(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
@@ -23,14 +25,18 @@ class switch(app_manager.RyuApp):
         switches = [switch.dp.id for switch in switch_list]
         links_list = get_link(self, None)
         links = [(link.src.dpid, link.dst.dpid, {'port': link.src.port_no}) for link in links_list]
+	global contatore_TD
 	print(switches)
 	print(links)
-
+	contatore_TD = ( contatore_TD + 1 )
+	print(contatore_TD)
 
     #utilizzando un approccio proattivo non ce ne frega di mandare i pacchetti al controller
     #dunque dobbiamo definire delle regole di default ---> group table (group type FAST FAILOVER)
     @set_ev_cls(ofp_event.EventOFPSwitchFeatures, CONFIG_DISPATCHER)
     def set_default_rule(self, ev):
+	print("SF :")
+	print(contatore_SF)
         # install default forwarding rule
         datapath = ev.msg.datapath
         ofproto = datapath.ofproto
