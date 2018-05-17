@@ -40,7 +40,7 @@ class switch(app_manager.RyuApp):
 		for i in switches: #for da i cicli per i switch [i=1->6]
 			sw_id_locked = sw_id
 			for link in links: #for per scorrere tutti i link trovati dal TD
-				if (link[0] == sw_id_locked and (link[1] != routing_matrix[i-2][0] or i == 1)):
+				if (link[0] == sw_id_locked and (link[1] == routing_matrix[i-2][0] or i == 1)):
 					routing_matrix[i-1][2] = link[2]
 				if (link[0] == sw_id and sw_id == sw_id_locked and (link[1] != routing_matrix[i-2][0] or i == 1)):
 					routing_matrix[i-1][0] = sw_id
