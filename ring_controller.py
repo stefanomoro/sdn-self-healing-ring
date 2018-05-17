@@ -35,16 +35,19 @@ class switch(app_manager.RyuApp):
 	
 	if contatore_TD == contatore_SF: #quando ha finito il topology discovery
 		sw_id = 1
-		routing_matrix = [[0 for col_links_matrix in range(5)] for row_links_matrix in range(len(switches))] #inizializzo matrice per instradamento [colonne: sw_id, cw_dest ccw_dest, host, host_ip]
+		#inizializzo matrice per instradamento [colonne: sw_id, cw_src_port, ccw_src_port, host, host_ip]
+		routing_matrix = [[0 for col_links_matrix in range(5)] for row_links_matrix in range(len(switches))]
 		print(routing_matrix)
 		for i in switches: #for da i cicli per i switch [i=1->6]
 			for link in links: #for per scorrere tutti i link trovati dal TD
-				print(i)
-				if (link[0] == sw_id and (link[1] != routing_matrix[i-2][0] or i == 1)):
+				sw_id_locked = sw_id
+				if (link[0] == sw_id and sw_id == sw_id_locked and (link[1] != routing_matrix[i-2][0] or i == 1)):
 					routing_matrix[i-1][0] = sw_id
 					routing_matrix[i-1][1] = link[2]
 					sw_id = link[1]
-					break
+				if link[0] == sw_id_locked:
+					routing_matrix[i-1][2] = link[2]
+					
 		print(routing_matrix)
 					
 				
