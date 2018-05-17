@@ -32,8 +32,8 @@ class switch(app_manager.RyuApp):
 	contatore_TD = ( contatore_TD + 1 )
 	print("TD :")
 	print(contatore_TD)
-	print(len(links))
-	type(links)
+	print(type(links))
+	
 	if contatore_TD == contatore_SF: #quando ha finito il topology discovery
 		sw_id = 1
 		routing_matrix = [[0 for col_links_matrix in range(5)] for row_links_matrix in range(len(switches))] #inizializzo matrice per instradamento [colonne: sw_id, cw_dest ccw_dest, host, host_ip]
