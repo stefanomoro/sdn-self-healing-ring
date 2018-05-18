@@ -60,7 +60,7 @@ class switch(app_manager.RyuApp):
 
     #utilizzando un approccio proattivo non ce ne frega di mandare i pacchetti al controller
     #dunque dobbiamo definire delle regole di default ---> group table (group type FAST FAILOVER)
-    @set_ev_cls(ofp_event.EventOFPSwitchFeatures, MAIN_DISPATCHER)
+    @set_ev_cls(ofp_event.EventOFPSwitchFeatures, CONFIG_DISPATCHER)
     def set_default_rule(self, ev):
 	global contatore_SF
 	contatore_SF = contatore_SF + 1
