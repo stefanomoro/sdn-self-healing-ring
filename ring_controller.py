@@ -50,7 +50,7 @@ class switch(app_manager.RyuApp):
 		print(routing_matrix)
 					
 				
-				
+
 			
 			
 	
@@ -66,32 +66,46 @@ class switch(app_manager.RyuApp):
 	contatore_SF = contatore_SF + 1
 	print("SF :")
 	print(contatore_SF)
-        # install default forwarding rule
+        
+	# install default forwarding rule
         datapath = ev.msg.datapath
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
 
 
-        #bisogna trovare la sintassi per definire bene come vogliamo la group table (fast failover)
-        """ Group table setup """
-        buckets = []
+        
+	
+	
+	
+	# ciclo for su matrice uscita dal topology discovery
 
-        # Action Bucket: <PWD port_i , SetState(i-1)
-        for port in range():
-            dest_ip = self.int_to_ip_str(port)
-            dest_eth = self.int_to_mac_str(port)
-            dest_tcp = (port) * 100
-            actions = [ofparser.OFPActionOutput(port=port)]
+        	# def send_flow_mod(self, datapath)
 
-            buckets.append(ofparser.OFPBucket(weight=100,
-                                              watch_port=ofproto.OFPP_ANY,
-                                              watch_group=ofproto.OFPG_ANY,
-                                              actions=actions))
+		# modifica group table
+		def send_group_mod(self, datapath):
+		    ofp = datapath.ofproto
+		    ofp_parser = datapath.ofproto_parser
 
-        req = ofparser.OFPGroupMod(datapath=datapath,
-                                   command=ofproto.OFPGC_ADD,
-                                   type_=ofproto.OFPGT_SELECT,
-                                   group_id=1,
-                                   buckets=buckets)
+		    port_cw = #tab[i][1]
+		    port_ccw = #tab[i][2]
+		    #max_len = 2000
+		    actions_norm = [ofp_parser.OFPActionOutput(port_cw)]
+		    actions_fault = [ofp_parser.OFPActionOutput(port_ccw)]
 
-        datapath.send_msg(req)
+		    weight = 100
+		    #watch_port = #tab[i][1]
+		    #watch_group = 0
+		    buckets_1 = [ofp_parser.OFPBucket(weight, watch_port="""tab[i][1]""", actions_norm),
+				    ofp_parser.OFPBucket(weight, watch_port="""tab[i][2]""", actions_fault)]
+
+		    buckets_2 = [ofp_parser.OFPBucket(weight, watch_port="""tab[i][2]""", actions_fault),
+				    ofp_parser.OFPBucket(weight, watch_port="""tab[i][1]""", """no actions == drop""")]
+
+		    #group_id = 1
+		    #group_id = 2
+		    req_1 = ofp_parser.OFPGroupMod(datapath, ofp.OFPGC_ADD,
+						 ofp.OFPGT_FF, group_id = 1, buckets_1)
+		    req_2 = ofp_parser.OFPGroupMod(datapath, ofp.OFPGC_ADD,
+						 ofp.OFPGT_FF, group_id = 2, buckets_2)
+
+		    datapath.send_msg(req_1, req_2)
