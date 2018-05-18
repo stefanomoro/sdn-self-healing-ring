@@ -82,30 +82,4 @@ class switch(app_manager.RyuApp):
         	# def send_flow_mod(self, datapath)
 
 		# modifica group table
-		def send_group_mod(self, datapath):
-		    ofp = datapath.ofproto
-		    ofp_parser = datapath.ofproto_parser
-
-		    port_cw = #tab[i][1]
-		    port_ccw = #tab[i][2]
-		    #max_len = 2000
-		    actions_norm = [ofp_parser.OFPActionOutput(port_cw)]
-		    actions_fault = [ofp_parser.OFPActionOutput(port_ccw)]
-
-		    weight = 100
-		    #watch_port = #tab[i][1]
-		    #watch_group = 0
-		    buckets_1 = [ofp_parser.OFPBucket(weight, watch_port="""tab[i][1]""", actions_norm),
-				    ofp_parser.OFPBucket(weight, watch_port="""tab[i][2]""", actions_fault)]
-
-		    buckets_2 = [ofp_parser.OFPBucket(weight, watch_port="""tab[i][2]""", actions_fault),
-				    ofp_parser.OFPBucket(weight, watch_port="""tab[i][1]""", """no actions == drop""")]
-
-		    #group_id = 1
-		    #group_id = 2
-		    req_1 = ofp_parser.OFPGroupMod(datapath, ofp.OFPGC_ADD,
-						 ofp.OFPGT_FF, group_id = 1, buckets_1)
-		    req_2 = ofp_parser.OFPGroupMod(datapath, ofp.OFPGC_ADD,
-						 ofp.OFPGT_FF, group_id = 2, buckets_2)
-
-		    datapath.send_msg(req_1, req_2)
+		
