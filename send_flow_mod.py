@@ -1,18 +1,18 @@
 # ...
-#  		# RECUPERIAMO DAI METADATI DEL PACCHETTO
+#  	# RECUPERIAMO DAI METADATI DEL PACCHETTO
 #       # la porta di ingresso allo switch
 #         in_port = msg.match['in_port']
 #         dpid = datapath.id
-# 		# msg.data contiene il pacchetto in caratteri
+# 	# msg.data contiene il pacchetto in caratteri
 #         pkt = packet.Packet(msg.data)
 #       # get_protocol ci restituisce le intestazioni del protocollo
 #         eth = pkt.get_protocol(ethernet.ethernet)
-# 		# ethernet non nullo
+# 	# ethernet non nullo
 #         assert eth is not None
 #       # destinazione e sorgente
 #         dst = eth.dst
 #         src = eth.src
-# 		# porta in ingresso sorgente
+# 	# porta in ingresso sorgente
 #         self.mac_to_port[dpid][src] = in_port
 # ...
 
@@ -36,7 +36,8 @@ def send_flow_mod(self, datapath):
 		parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,actions), parser.OFPInstructionGotoTable(1)  
 	]
 	req = parser.OFPFlowMod(datapath=datapath, table_id=0, priority=0, match=match, instructions=inst)
-	
+	datapath.send_msg(req)
+		
 	# devo trovare un modo per non inoltrarlo due volte con flag o contatori (o traffic monitor?)
 	# IMPOSTO REGOLE FLOW_TABLE 1	
 	# broadcast		
@@ -51,7 +52,8 @@ def send_flow_mod(self, datapath):
 		parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,actions), parser.OFPInstructionGotoTable(2)  
 	]
 	req = parser.OFPFlowMod(datapath=datapath, table_id=1, priority=0, match=match, instructions=inst)
-	
+	datapath.send_msg(req)
+		
 	# IMPOSTO REGOLE FLOW_TABLE 2
 	# broadcast		
 	match = parser.OFPMatch(in_port=routing_matrix[i][2], eth_dst='ff:ff:ff:ff:ff:ff')
@@ -65,6 +67,7 @@ def send_flow_mod(self, datapath):
 		parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,actions), parser.OFPInstructionGotoTable(3) 
 	]
 	req = parser.OFPFlowMod(datapath=datapath, table_id=2, priority=0, match=match, instructions=inst)
+	datapath.send_msg(req)
 	
 	# IMPOSTO REGOLE FLOW_TABLE 3
 	# mando a group table 1
@@ -75,6 +78,7 @@ def send_flow_mod(self, datapath):
 		parser.OFPInstructionGotoTable(group 1), parser.OFPInstructionGotoTable(4)
 	]
 	req = parser.OFPFlowMod(datapath=datapath, table_id=3, priority=0, match=match, instructions=inst)
+	datapath.send_msg(req)
 	
 	# IMPOSTO REGOLE FLOW_TABLE 4
 	# mando a group table 2
@@ -85,4 +89,4 @@ def send_flow_mod(self, datapath):
 		parser.OFPInstructionGotoTable(group 2)
 	]
 	req = parser.OFPFlowMod(datapath=datapath, table_id=4, priority=0, match=match, instructions=inst)
-	
+	datapath.send_msg(req)
