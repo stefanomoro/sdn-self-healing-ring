@@ -7,8 +7,8 @@ from ryu.lib.packet import packet
 from ryu.lib.packet import ethernet
 from ryu.topology import event, switches
 from ryu.topology.api import get_switch, get_link
-#contatore_SF = 0
-contatore_TD = 0
+
+topoOk = False
 
 class switch(app_manager.RyuApp):
 	OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
@@ -25,16 +25,15 @@ class switch(app_manager.RyuApp):
 		switches = [switch.dp.id for switch in switch_list]
 		links_list = get_link(self, None)
 		links = [(link.src.dpid, link.dst.dpid, link.src.port_no) for link in links_list]
-		global contatore_TD
-		#global contatore_SF
+		
+		print("SWITCHES"),
 		print(switches)
+		print("LINKS"),
 		print(links)
-		contatore_TD = ( contatore_TD + 1 )
-		print("TD :")
-		print(contatore_TD)
 
-		if contatore_TD == len(switches): #quando ha finito il topology discovery
-			#inizializzo matrice per instradamento [colonne: sw_id, cw_src_port, ccw_src_port, host, host_ip]
+		global topoOk
+
+		if not topoOk and isRing(switches,links) : 
 			
 			routing_matrix = []
 
@@ -60,9 +59,9 @@ class switch(app_manager.RyuApp):
 					routing_matrix.append(ringNode(sw, sw_links[0][1], sw_links[1][1], sw_links[0][2], sw_links[1][2],"","") )
 
 			
-
-				printMat(routing_matrix)
-				print("______");
+			topoOk = True
+			printMat(routing_matrix)
+			print("______");
 					
 
 class ringNode(object):
@@ -96,3 +95,13 @@ def printMat(mat):
 		print(sw.port_cw),
 		print(" port_ccw:"),
 		print(sw.port_ccw)
+
+
+def isRing(switches,links):
+
+	for sw in switches:
+		sw_links = [x for x in links if x[0] == sw]
+
+		if len(sw_links) < 2 or not [x for x in sw_links for y in links if x[1] == y[0]]:
+			return False
+	return True
