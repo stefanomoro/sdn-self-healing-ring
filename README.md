@@ -12,4 +12,3 @@
  * Flow table, per gestire i broadcast e l'inoltro all'host (FEDE)
  * Group table, per gestione guasto e inoltro in senso orario (FIL)
  * Ricerca sullo Spanning Tree (per ARP)
- * Ricerca della topalogia (FIL)
