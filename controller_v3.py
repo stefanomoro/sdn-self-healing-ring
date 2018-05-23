@@ -29,6 +29,7 @@ class switch(app_manager.RyuApp):
         print(switches)
         print("LINKS"),
         print(links)
+        global routing_matrix
         global topoOk
         if not topoOk and isRing(switches, links):
             #routing_matrix = []
@@ -92,6 +93,7 @@ class switch(app_manager.RyuApp):
         dst = eth.dst
 
         # routing_matrix è globale, cerco l'oggetto switch che matcha l'id estratto da ev
+        global routing_matrix
         for s in routing_matrix:
             if dpid == s.id:
                 sw_obj = s
