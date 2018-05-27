@@ -17,9 +17,8 @@ class switch(app_manager.RyuApp):
 
     def __init__(self, *args, **kwargs):
         super(switch, self).__init__(*args, **kwargs)
-    # self.mac_to_port = {}
 
-    # TODO spostare topology discovery in SwitchFeatures e integrare con hosts
+    # NOTA: qui il TD funziona senza problemi, in SwitchFeatures da' problemi
     @set_ev_cls(event.EventSwitchEnter)
     def get_topology_data(self, ev):
         switch_list = get_switch(self, None)
@@ -70,6 +69,7 @@ class switch(app_manager.RyuApp):
         parser = datapath.ofproto_parser
 
         # installiamo la default miss entry
+        # si potrebbe mettere il match solo sugli arp
         match = parser.OFPMatch()
         actions = [parser.OFPActionOutput(ofproto.OFPP_CONTROLLER, ofproto.OFPCML_NO_BUFFER)]
         inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
@@ -93,7 +93,6 @@ class switch(app_manager.RyuApp):
         # gestione centralizzata arp
         # TODO testare bene e unire la lista di host alla routing matrix
         if arp_in is not None:
-            #print("arp received")
 
             assert arp_in.opcode == arp.ARP_REQUEST
             destination_host_mac = None
@@ -102,6 +101,9 @@ class switch(app_manager.RyuApp):
                 if arp_in.dst_ip in host.ipv4:
                     destination_host_mac = host.mac
                     break
+
+            # codice che aggiunge host a routing matrix qui?
+            # topoOk = True qui nel caso
 
             # host non trovato
             if destination_host_mac is None:
@@ -142,21 +144,22 @@ class switch(app_manager.RyuApp):
         else:
             return
 
-        # routing_matrix e' globale, cerco l'oggetto switch che matcha l'id estratto da ev
-        # TODO potremmo indentare questa parte per installare le tabelle solo quando riceviamo uno specifico pacchetto
-        global routing_matrix
-        for s in routing_matrix:
-            if dpid == s.id:
-                sw_obj = s
+        # installo le tabelle
+        if topoOk:  # and non ho ancora installato la tabella su dpid
+            global routing_matrix
+            for s in routing_matrix:
+                if dpid == s.id:
+                    sw_obj = s
 
-                # prendendo i riferimenti dall'oggetto switch che matcha l'id compilo flow e group tables
+                    # prendendo i riferimenti dall'oggetto switch che matcha l'id compilo flow e group tables
+                    # TODO passare a flow mod e group mod i riferimenti corretti dell'host prima di installare tabelle
+                    # poi set flag di avvenuta installazione (cosi la prossima volta evito di reinstallare)
 
-                # TODO passare a flow mod e group mod i riferimenti corretti dell'host prima di installare tabelle
+                    # flow_mod(datapath, sw_obj)
+                    group_mod(datapath, sw_obj.port_cw, sw_obj.port_ccw)
+                    # set flag di installazione avvenuta
 
-                # flow_mod(datapath, sw_obj)
-                group_mod(datapath, sw_obj.port_cw, sw_obj.port_ccw)
-
-                # print("group table installed on switch", dpid, "port cw", sw_obj.port_cw, "port ccw", sw_obj.port_ccw)
+                    print("group table installed on switch", dpid, "port cw", sw_obj.port_cw, "port ccw", sw_obj.port_ccw)
 
 
 # definisco la funzione che compila la flow table
@@ -194,6 +197,14 @@ def flow_mod(datapath, sw):
                                 priority, match, inst)
     datapath.send_msg(req)
 
+    # inoltro da porta host
+    match = ofp_parser.OFPMatch("""in_port=sw.host_port""")
+    actions = [ofp_parser.OFPActionGroup(group_id=1)]
+    inst = [ofp_parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS,
+                                             actions)]
+    req = ofp_parser.OFPFlowMod(datapath, table_id, ofp.OFPFC_ADD,
+                                priority, match=match, instructions=inst)
+    datapath.send_msg(req)
 
 # definisco la funzione che compila la group table
 def group_mod(datapath, cw, ccw):
