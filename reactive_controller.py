@@ -11,6 +11,9 @@ from ryu.topology.api import get_switch, get_link, get_all_host
 
 topoOk = False
 routing_matrix = []
+i = 0
+hostOk = False
+
 
 class switch(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
@@ -42,22 +45,22 @@ class switch(app_manager.RyuApp):
                 if sw_ccw:  # check se c'e' switch gia salvato con id_cw il mio id
                     if sw_ccw[0].id == sw_links[0][1]:
                         routing_matrix.append(
-                            ringNode(sw, sw_links[1][1], sw_links[0][1], sw_links[1][2], sw_links[0][2], "", ""))
+                            ringNode(sw, sw_links[1][1], sw_links[0][1], sw_links[1][2], sw_links[0][2], "", "", 0))
 
                     else:  # altrimenti e' il contrario
                         routing_matrix.append(
-                            ringNode(sw, sw_links[0][1], sw_links[1][1], sw_links[0][2], sw_links[1][2], "", ""))
+                            ringNode(sw, sw_links[0][1], sw_links[1][1], sw_links[0][2], sw_links[1][2], "", "", 0))
 
                 elif sw_cw:
                     if sw_cw[0].id == sw_links[0][1]:
                         routing_matrix.append(
-                            ringNode(sw, sw_links[0][1], sw_links[1][1], sw_links[0][2], sw_links[1][2], "", ""))
+                            ringNode(sw, sw_links[0][1], sw_links[1][1], sw_links[0][2], sw_links[1][2], "", "", 0))
                     else:
                         routing_matrix.append(
-                            ringNode(sw, sw_links[1][1], sw_links[0][1], sw_links[1][2], sw_links[0][2], "", ""))
+                            ringNode(sw, sw_links[1][1], sw_links[0][1], sw_links[1][2], sw_links[0][2], "", "", 0))
                 else:  # se non ho trovato altro allora e' nuovo
                     routing_matrix.append(
-                        ringNode(sw, sw_links[0][1], sw_links[1][1], sw_links[0][2], sw_links[1][2], "", ""))
+                        ringNode(sw, sw_links[0][1], sw_links[1][1], sw_links[0][2], sw_links[1][2], "", "", 0))
             topoOk = True
             printMat(routing_matrix)
             print("______")
@@ -69,7 +72,6 @@ class switch(app_manager.RyuApp):
         parser = datapath.ofproto_parser
 
         # installiamo la default miss entry
-        # si potrebbe mettere il match solo sugli arp
         match = parser.OFPMatch()
         actions = [parser.OFPActionOutput(ofproto.OFPP_CONTROLLER, ofproto.OFPCML_NO_BUFFER)]
         inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
@@ -87,8 +89,28 @@ class switch(app_manager.RyuApp):
         pkt = packet.Packet(msg.data)
         eth = pkt.get_protocol(ethernet.ethernet)
         arp_in = pkt.get_protocol(arp.arp)
-        src = eth.src
-        dst = eth.dst
+        # src = eth.src
+        # dst = eth.dst
+
+        # installo le tabelle
+        global hostOk
+        global routing_matrix
+        if hostOk and not routing_matrix[dpid-1].installed:  # and non ho ancora installato la tabella su dpid
+
+            for s in routing_matrix:
+                if dpid == s.id:
+                    sw_obj = s
+
+                    # prendendo i riferimenti dall'oggetto switch che matcha l'id compilo flow e group tables
+                    # poi set flag di avvenuta installazione (cosi la prossima volta evito di reinstallare)
+
+                    flow_mod(datapath, sw_obj)
+                    group_mod(datapath, sw_obj.port_cw, sw_obj.port_ccw)
+                    # set flag di installazione avvenuta
+                    routing_matrix[dpid-1].installed = 1
+
+                    print("tables installed on switch", dpid, "port cw", sw_obj.port_cw, "port ccw", sw_obj.port_ccw,
+                          "host linked", sw_obj.host_mac)
 
         # gestione centralizzata arp
         # TODO testare bene e unire la lista di host alla routing matrix
@@ -102,8 +124,26 @@ class switch(app_manager.RyuApp):
                     destination_host_mac = host.mac
                     break
 
-            # codice che aggiunge host a routing matrix qui?
-            # topoOk = True qui nel caso
+            # codice che aggiunge host a routing matrix
+            global i
+            if i < len(routing_matrix):
+                for host in host_list:
+                    for sw in routing_matrix:
+                        if host.port.dpid == sw.id and sw.host_mac is "":
+                            sw.host_mac = host.mac
+                            sw.host_port = int(host.port.name[-1])
+                            i += 1
+
+            elif i == len(routing_matrix):
+                hostOk = True
+
+            # hosts = [(host.mac, host.port.dpid, host.port.name) for host in host_list]
+            # print(hosts)
+            print("len routing mat", len(routing_matrix)),
+            print("i=", i),
+            print(hostOk)
+            printMat(routing_matrix)
+            print("________")
 
             # host non trovato
             if destination_host_mac is None:
@@ -144,23 +184,6 @@ class switch(app_manager.RyuApp):
         else:
             return
 
-        # installo le tabelle
-        if topoOk:  # and non ho ancora installato la tabella su dpid
-            global routing_matrix
-            for s in routing_matrix:
-                if dpid == s.id:
-                    sw_obj = s
-
-                    # prendendo i riferimenti dall'oggetto switch che matcha l'id compilo flow e group tables
-                    # TODO passare a flow mod e group mod i riferimenti corretti dell'host prima di installare tabelle
-                    # poi set flag di avvenuta installazione (cosi la prossima volta evito di reinstallare)
-
-                    # flow_mod(datapath, sw_obj)
-                    group_mod(datapath, sw_obj.port_cw, sw_obj.port_ccw)
-                    # set flag di installazione avvenuta
-
-                    print("group table installed on switch", dpid, "port cw", sw_obj.port_cw, "port ccw", sw_obj.port_ccw)
-
 
 # definisco la funzione che compila la flow table
 def flow_mod(datapath, sw):
@@ -171,8 +194,8 @@ def flow_mod(datapath, sw):
     #   buffer_id = ofp.OFP_NO_BUFFER
 
     # inoltro all'host
-    match = ofp_parser.OFPMatch("""eth_dst=sw.host_mac""")
-    actions = [ofp_parser.OFPActionOutput(ofp.OFPP_LOCAL, """sw.host_port""")]
+    match = ofp_parser.OFPMatch(eth_dst=sw.host_mac)
+    actions = [ofp_parser.OFPActionOutput(ofp.OFPP_LOCAL, sw.host_port)]
     inst = [ofp_parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS,
                                              actions)]
     req = ofp_parser.OFPFlowMod(datapath, table_id, ofp.OFPFC_ADD,
@@ -194,11 +217,11 @@ def flow_mod(datapath, sw):
     inst = [ofp_parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS,
                                              actions)]
     req = ofp_parser.OFPFlowMod(datapath, table_id, ofp.OFPFC_ADD,
-                                priority, match, inst)
+                                priority, match=match, instructions=inst)
     datapath.send_msg(req)
 
     # inoltro da porta host
-    match = ofp_parser.OFPMatch("""in_port=sw.host_port""")
+    match = ofp_parser.OFPMatch(in_port=sw.host_port)
     actions = [ofp_parser.OFPActionGroup(group_id=1)]
     inst = [ofp_parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS,
                                              actions)]
@@ -227,17 +250,19 @@ class ringNode(object):
     port_cw = ""
     port_ccw = ""
     host_port = ""
-    host_ip = ""
+    host_mac = ""
+    installed = ""
 
     # The class "constructor" - It's actually an initializer
-    def __init__(self, id, id_cw, id_ccw, port_cw, port_ccw, host_port, host_ip):
+    def __init__(self, id, id_cw, id_ccw, port_cw, port_ccw, host_port, host_mac, installed):
         self.id = id
         self.id_cw = id_cw
         self.id_ccw = id_ccw
         self.port_cw = port_cw
         self.port_ccw = port_ccw
         self.host_port = host_port
-        self.host_ip = host_ip
+        self.host_mac = host_mac
+        self.installed = installed
 
 
 def printMat(mat):
@@ -252,6 +277,12 @@ def printMat(mat):
         print(sw.port_cw),
         print(" port_ccw:"),
         print(sw.port_ccw)
+        print(" host_port:"),
+        print(sw.host_port)
+        print(" host_mac:"),
+        print(sw.host_mac)
+        print(" installed:"),
+        print(sw.installed)
 
 
 def isRing(switches, links):
