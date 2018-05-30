@@ -9,10 +9,11 @@ from ryu.lib.packet import arp
 from ryu.topology import event, switches
 from ryu.topology.api import get_switch, get_link, get_all_host
 
-routing_matrix = []
 topoOk = False
-hostOk = False
+routing_matrix = []
 i = 0
+hostOk = False
+
 
 class switch(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
@@ -74,7 +75,7 @@ class switch(app_manager.RyuApp):
         match = parser.OFPMatch()
         actions = [parser.OFPActionOutput(ofproto.OFPP_CONTROLLER, ofproto.OFPCML_NO_BUFFER)]
         inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
-        mod = parser.OFPFlowMod(datapath=datapath, priority=1, match=match, instructions=inst)
+        mod = parser.OFPFlowMod(datapath=datapath, priority=0, match=match, instructions=inst)
         datapath.send_msg(mod)
 
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
@@ -98,18 +99,18 @@ class switch(app_manager.RyuApp):
 
             for s in routing_matrix:
                 if dpid == s.id:
-                    sw_obj = s
+                    #sw_obj = s
 
                     # prendendo i riferimenti dall'oggetto switch che matcha l'id compilo flow e group tables
                     # poi set flag di avvenuta installazione (cosi la prossima volta evito di reinstallare)
 
-                    flow_mod(datapath, sw_obj)
-                    group_mod(datapath, sw_obj.port_cw, sw_obj.port_ccw)
+                    self.flow_mod(datapath, s)
+                    self.group_mod(datapath, s.port_cw, s.port_ccw)
                     # set flag di installazione avvenuta
                     routing_matrix[dpid-1].installed = 1
 
-                    print("tables installed on switch", dpid, "port cw", sw_obj.port_cw, "port ccw", sw_obj.port_ccw,
-                          "host linked", sw_obj.host_mac)
+                    print("tables installed on switch", dpid, "port cw", s.port_cw, "port ccw", s.port_ccw,
+                          "host linked", s.host_mac)
 
         # gestione centralizzata arp
         # TODO testare bene e unire la lista di host alla routing matrix
@@ -184,62 +185,63 @@ class switch(app_manager.RyuApp):
             return
 
 
-# definisco la funzione che compila la flow table
-def flow_mod(datapath, sw):
-    ofp = datapath.ofproto
-    ofp_parser = datapath.ofproto_parser
-    table_id = 0
-    priority = 1
-    #   buffer_id = ofp.OFP_NO_BUFFER
+    # definisco la funzione che compila la flow table
+    def flow_mod(self, datapath, sw):
+        ofp = datapath.ofproto
+        ofp_parser = datapath.ofproto_parser
+        table_id = 0
+        #priority = 1
+        #   buffer_id = ofp.OFP_NO_BUFFER
 
-    # inoltro all'host
-    match = ofp_parser.OFPMatch(eth_dst=sw.host_mac)
-    actions = [ofp_parser.OFPActionOutput(ofp.OFPP_LOCAL, sw.host_port)]
-    inst = [ofp_parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS,
-                                             actions)]
-    req = ofp_parser.OFPFlowMod(datapath, table_id, ofp.OFPFC_ADD,
-                                priority=2, match=match, instructions=inst)
-    datapath.send_msg(req)
+        # inoltro all'host
+        match = ofp_parser.OFPMatch(eth_dst=sw.host_mac)
+        actions = [ofp_parser.OFPActionOutput(sw.host_port)]
+        inst = [ofp_parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS,
+                                                 actions)]
+        req1 = ofp_parser.OFPFlowMod(datapath, table_id, ofp.OFPFC_ADD,
+                                    priority=2, match=match, instructions=inst)
+        datapath.send_msg(req1)
 
-    # inoltro da porta cw
-    match = ofp_parser.OFPMatch(in_port=sw.port_ccw)
-    actions = [ofp_parser.OFPActionGroup(group_id=1)]
-    inst = [ofp_parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS,
-                                             actions)]
-    req = ofp_parser.OFPFlowMod(datapath, table_id, ofp.OFPFC_ADD,
-                                priority, match=match, instructions=inst)
-    datapath.send_msg(req)
+        # inoltro da porta cw
+        match = ofp_parser.OFPMatch(in_port=sw.port_ccw)
+        actions = [ofp_parser.OFPActionOutput(sw.port_cw)] #[ofp_parser.OFPActionGroup(group_id=1)]
+        inst = [ofp_parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS,
+                                                 actions)]
+        req2 = ofp_parser.OFPFlowMod(datapath, table_id, ofp.OFPFC_ADD,
+                                    priority=1, match=match, instructions=inst)
+        datapath.send_msg(req2)
 
-    # inoltro da porta ccw
-    match = ofp_parser.OFPMatch(in_port=sw.port_cw)
-    actions = [ofp_parser.OFPActionOutput(ofp.OFPP_LOCAL, sw.port_ccw)]
-    inst = [ofp_parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS,
-                                             actions)]
-    req = ofp_parser.OFPFlowMod(datapath, table_id, ofp.OFPFC_ADD,
-                                priority, match=match, instructions=inst)
-    datapath.send_msg(req)
+        # inoltro da porta ccw
+        match = ofp_parser.OFPMatch(in_port=sw.port_cw)
+        actions = [ofp_parser.OFPActionOutput(sw.port_ccw)]
+        inst = [ofp_parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS,
+                                                 actions)]
+        req3 = ofp_parser.OFPFlowMod(datapath, table_id, ofp.OFPFC_ADD,
+                                    priority=1, match=match, instructions=inst)
+        datapath.send_msg(req3)
 
-    # inoltro da porta host
-    match = ofp_parser.OFPMatch(in_port=sw.host_port)
-    actions = [ofp_parser.OFPActionGroup(group_id=1)]
-    inst = [ofp_parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS,
-                                             actions)]
-    req = ofp_parser.OFPFlowMod(datapath, table_id, ofp.OFPFC_ADD,
-                                priority, match=match, instructions=inst)
-    datapath.send_msg(req)
+        # inoltro da porta host
+        match = ofp_parser.OFPMatch(in_port=sw.host_port)
+        actions = [ofp_parser.OFPActionOutput(sw.port_cw)] #[ofp_parser.OFPActionGroup(group_id=1)]
+        inst = [ofp_parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS,
+                                                 actions)]
+        req4 = ofp_parser.OFPFlowMod(datapath, table_id, ofp.OFPFC_ADD,
+                                    priority=1, match=match, instructions=inst)
+        datapath.send_msg(req4)
 
-# definisco la funzione che compila la group table
-def group_mod(datapath, cw, ccw):
-    ofp = datapath.ofproto
-    ofp_parser = datapath.ofproto_parser
-    actions_norm = [ofp_parser.OFPActionOutput(cw)]
-    actions_fault = [ofp_parser.OFPActionOutput(ccw)]
-    weight = 100
-    buckets_1 = [ofp_parser.OFPBucket(weight, watch_port=cw, actions=actions_norm),
-                 ofp_parser.OFPBucket(weight, watch_port=ccw, actions=actions_fault)]
-    req_1 = ofp_parser.OFPGroupMod(datapath, ofp.OFPGC_ADD,
-                                   ofp.OFPGT_FF, group_id=1, buckets=buckets_1)
-    datapath.send_msg(req_1)
+
+    # definisco la funzione che compila la group table
+    def group_mod(self, datapath, cw, ccw):
+        ofp = datapath.ofproto
+        ofp_parser = datapath.ofproto_parser
+        actions_norm = [ofp_parser.OFPActionOutput(cw)]
+        actions_fault = [ofp_parser.OFPActionOutput(ccw)]
+        weight = 100
+        buckets_1 = [ofp_parser.OFPBucket(weight, watch_port=cw, actions=actions_norm),
+                     ofp_parser.OFPBucket(weight, watch_port=ccw, actions=actions_fault)]
+        req_1 = ofp_parser.OFPGroupMod(datapath, ofp.OFPGC_ADD,
+                                       ofp.OFPGT_FF, group_id=1, buckets=buckets_1)
+        datapath.send_msg(req_1)
 
 
 class ringNode(object):
