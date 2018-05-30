@@ -205,7 +205,7 @@ class switch(app_manager.RyuApp):
 
 		# inoltro all'host
 		match = ofp_parser.OFPMatch(eth_dst=sw.host_mac)
-		actions = [ofp_parser.OFPActionOutput(ofp.OFPP_LOCAL, sw.host_port)]
+		actions = [ofp_parser.OFPActionOutput( sw.host_port)]
 		inst = [ofp_parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS,
 												 actions)]
 		req = ofp_parser.OFPFlowMod(datapath=datapath, 
@@ -214,7 +214,8 @@ class switch(app_manager.RyuApp):
 
 		# inoltro da porta cw
 		match = ofp_parser.OFPMatch(in_port=sw.port_ccw)
-		actions = [ofp_parser.OFPActionGroup(group_id=1)]
+		#actions = [ofp_parser.OFPActionGroup(group_id=1)]
+		actions = [ofp_parser.OFPActionOutput(sw.port_cw)]
 		inst = [ofp_parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS,
 												 actions)]
 		req = ofp_parser.OFPFlowMod(datapath=datapath,
@@ -223,7 +224,7 @@ class switch(app_manager.RyuApp):
 
 		# inoltro da porta ccw
 		match = ofp_parser.OFPMatch(in_port=sw.port_cw)
-		actions = [ofp_parser.OFPActionOutput(ofp.OFPP_LOCAL, sw.port_ccw)]
+		actions = [ofp_parser.OFPActionOutput( sw.port_ccw)]
 		inst = [ofp_parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS,
 												 actions)]
 		req = ofp_parser.OFPFlowMod(datapath=datapath,
@@ -232,7 +233,8 @@ class switch(app_manager.RyuApp):
 
 		# inoltro da porta host
 		match = ofp_parser.OFPMatch(in_port=sw.host_port)
-		actions = [ofp_parser.OFPActionGroup(group_id=1)]
+		#actions = [ofp_parser.OFPActionGroup(group_id=1)]
+		actions = [ofp_parser.OFPActionOutput(sw.port_cw)]
 		inst = [ofp_parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS,
 												 actions)]
 		req = ofp_parser.OFPFlowMod(datapath=datapath,
