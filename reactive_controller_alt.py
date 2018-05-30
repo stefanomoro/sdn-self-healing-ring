@@ -222,6 +222,7 @@ class switch(app_manager.RyuApp):
 									priority=1, match=match, instructions=inst)
 		datapath.send_msg(req)
 
+
 		# inoltro da porta ccw
 		match = ofp_parser.OFPMatch(in_port=sw.port_cw)
 		actions = [ofp_parser.OFPActionOutput( sw.port_ccw)]
