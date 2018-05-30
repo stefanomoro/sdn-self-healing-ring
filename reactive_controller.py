@@ -9,11 +9,10 @@ from ryu.lib.packet import arp
 from ryu.topology import event, switches
 from ryu.topology.api import get_switch, get_link, get_all_host
 
-topoOk = False
 routing_matrix = []
-i = 0
+topoOk = False
 hostOk = False
-
+i = 0
 
 class switch(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
