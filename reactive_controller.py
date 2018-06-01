@@ -102,8 +102,8 @@ class switch(app_manager.RyuApp):
 			# prendendo i riferimenti dall'oggetto switch che matcha l'id compilo flow e group tables
 			# poi set flag di avvenuta installazione (cosi la prossima volta evito di reinstallare)
 
-			self.flow_mod(datapath, sw_obj)
 			self.group_mod(datapath, sw_obj.port_cw, sw_obj.port_ccw)
+			self.flow_mod(datapath, sw_obj)
 			# set flag di installazione avvenuta
 			idx=0
 			for s in routing_matrix:
@@ -122,7 +122,7 @@ class switch(app_manager.RyuApp):
 		# TODO testare bene e unire la lista di host alla routing matrix
 		if arp_in is not None:
 			
-			print("ccc")
+			print("ARP packet")
 			assert arp_in.opcode == arp.ARP_REQUEST
 			print("DP id-> "),
 			print(dpid)
@@ -217,7 +217,8 @@ class switch(app_manager.RyuApp):
 
 		# inoltro da porta cw
 		match = ofp_parser.OFPMatch(in_port=sw.port_ccw)
-		actions = [ofp_parser.OFPActionOutput(sw.port_cw)] #[ofp_parser.OFPActionGroup(group_id=1)]
+		#actions = [ofp_parser.OFPActionOutput(sw.port_cw)] #[ofp_parser.OFPActionGroup(group_id=1)]
+		actions = [ofp_parser.OFPActionGroup(group_id=1)]
 		inst = [ofp_parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS,
 												 actions)]
 		req2 = ofp_parser.OFPFlowMod(datapath, table_id, ofp.OFPFC_ADD,
@@ -235,7 +236,9 @@ class switch(app_manager.RyuApp):
 
 		# inoltro da porta host
 		match = ofp_parser.OFPMatch(in_port=sw.host_port)
-		actions = [ofp_parser.OFPActionOutput(sw.port_cw)] #[ofp_parser.OFPActionGroup(group_id=1)]
+		#actions = [ofp_parser.OFPActionOutput(sw.port_cw)] #[ofp_parser.OFPActionGroup(group_id=1)]
+		
+		actions = [ofp_parser.OFPActionGroup(group_id=1)]
 		inst = [ofp_parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS,
 												 actions)]
 		req4 = ofp_parser.OFPFlowMod(datapath, table_id, ofp.OFPFC_ADD,
@@ -256,9 +259,9 @@ class switch(app_manager.RyuApp):
 		ofp_parser = datapath.ofproto_parser
 		actions_norm = [ofp_parser.OFPActionOutput(cw)]
 		actions_fault = [ofp_parser.OFPActionOutput(ccw)]
-		weight = 100
-		buckets_1 = [ofp_parser.OFPBucket(weight, watch_port=cw, actions=actions_norm),
-					 ofp_parser.OFPBucket(weight, watch_port=ccw, actions=actions_fault)]
+		#weight = 100
+		buckets_1 = [ofp_parser.OFPBucket( watch_port=cw, actions=actions_norm),
+					 ofp_parser.OFPBucket( watch_port=ccw, actions=actions_fault)]
 		req_1 = ofp_parser.OFPGroupMod(datapath, ofp.OFPGC_ADD,
 									   ofp.OFPGT_FF, group_id=1, buckets=buckets_1)
 		datapath.send_msg(req_1)
